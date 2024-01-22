@@ -18,7 +18,8 @@ def cli():
 
 
 @cli.command()
-@click.option('--data', type=click.Path(exists=True, file_okay=False), default='data')
+@click.option('--data', type=click.Path(exists=True, file_okay=False), default='data',
+              help="The path to the elgold dataset.")
 @click.option('--split/--no-split', default=False,
               help='Generate separate data file for each articles category. 0 '
                     'category contains all data. If activated, "target" must be a'

@@ -1,5 +1,6 @@
 import os
 from collections import Counter
+from statistics import mean, stdev
 
 import click
 
@@ -290,6 +291,37 @@ def list_entities(data, search_classes):
                     line_nb = parsed_line['nb']
                     entity_raw = entity['raw']
                     print(f'{Colors.MAGENTA}{file}{Colors.ENDC}:{Colors.BLUE}{line_nb}{Colors.ENDC}:{entity_raw}')
+
+
+@cli.command()
+@click.option('--data', type=click.Path(exists=True, file_okay=False), default='data')
+@click.argument('categories', nargs=-1, type=click.Path(exists=False, file_okay=False))
+def text_stat(data, categories):
+    dataset = Dataset(data)
+    if len(categories) == 0:
+        categories = ['']  # get all categories
+
+    files_lenghts = {category: [] for category in categories}
+
+    for parsed_file in dataset.iterate_files():
+        # get first matching category
+        current_category = None
+        for category in categories:
+            if category in parsed_file['category']:
+                current_category = category
+                break
+        if current_category is not None:
+            files_lenghts[current_category].append(
+                sum([len(line['plain_text_tokens']) for line in parsed_file['lines']]))
+
+    print('id\tcount\tmin\tmax\tavg\tstd')
+    for category, tokens_count in files_lenghts.items():
+        nb_of_texts = len(tokens_count)
+        cat_min = min(tokens_count)
+        cat_max = max(tokens_count)
+        cat_avg = mean(tokens_count)
+        cat_stdev = stdev(tokens_count)
+        print(f'{category}\t{nb_of_texts}\t{cat_min}\t{cat_max}\t{cat_avg:.0f}\t{cat_stdev:.0f}')
 
 
 if __name__ == '__main__':

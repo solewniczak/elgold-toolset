@@ -23,8 +23,7 @@ The elgold toolset consists of four main modules:
 * `convert.py` - export Elgold dataset
 to different formats.
 * `elgold.py` - manage Elgold dataset.
-* `plot.py` - display plots.
-* `stat.py` - calculate dataset statistics.
+* `plot.py` - plot various dataset statistics.
 
 The detailed information about each module can be 
 obtained using `--help` flag. E.g. `python convert.py --help`.
