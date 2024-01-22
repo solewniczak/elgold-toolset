@@ -45,35 +45,6 @@ def text_stat(data, categories):
 
 
 @cli.command()
-@click.option('--data', type=click.Path(exists=True, file_okay=False), default='intermediate/annotated-raw')
-def texts_per_author(data):
-    texts_to_annotators = Counter()
-    for f in os.listdir(data):
-        annotator_dir = os.path.join(data, f)
-        if os.path.isdir(annotator_dir):
-            annotated_texts = len(
-                [f for f in os.listdir(annotator_dir) if os.path.isfile(os.path.join(annotator_dir, f))])
-            texts_to_annotators[annotated_texts] += 1
-
-    min_texts = min(texts_to_annotators)
-    max_texts = max(texts_to_annotators)
-    # data_to_plot = {}
-    # for n_texts in range(min_texts, max_texts+1):
-    #     data_to_plot[n_texts] = texts_to_annotators[n_texts]
-
-    labels, values = zip(*texts_to_annotators.most_common())
-
-    fig, axs = plt.subplots()
-    bars = axs.bar(labels, values)
-    axs.bar_label(bars)
-    axs.set_xticks(range(min_texts, max_texts + 1))
-    axs.set_xlabel("Number of annotated texts")
-    axs.set_ylabel("Number of annotators")
-    fig.set_tight_layout(True)
-    plt.show()
-
-
-@cli.command()
 @click.option('--first', type=click.Path(exists=True, file_okay=False), default='verification-team')
 @click.option('--second', type=click.Path(exists=True, file_okay=False), default='verification-by-authors')
 def links_diff(first, second):

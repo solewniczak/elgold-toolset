@@ -10,16 +10,32 @@ from utils.wikipedia import Wikipedia
 
 @click.group()
 def cli():
+    """
+    Convert the elgold dataset to different formats. Use convert.py [command] --help for detailed information about
+    available commands.
+    """
     pass
 
 
 @cli.command()
 @click.option('--data', type=click.Path(exists=True, file_okay=False), default='data')
-@click.option('--split/--no-split', default=False, help='Generate separate data file for each articles category. 0 '
-                                                        'category contains all data. If activated, "target" must be a'
-                                                        ' directory.')
+@click.option('--split/--no-split', default=False,
+              help='Generate separate data file for each articles category. 0 '
+                    'category contains all data. If activated, "target" must be a'
+                    ' directory.')
 @click.argument('target', nargs=1, type=click.Path(exists=False, file_okay=True), default='spacy.json')
 def spacy(data, split, target):
+    """
+    Prepare dataset for spaCy NER evaluation. This command converts the dataset to a single json array. Each array
+    element is a single text from the dataset. Each text is represented as a json object with keys "text" and
+    "entities". The "text" contains a raw text and "entities" is an array of entities from the text. Each entity is
+    an array of three elements: [start, end, class], where start and end define the starting and ending character of
+    the entity and the class is the entity class.
+
+    This format drops the Wikipedia links.
+
+    This format was intended to be used for evaluating the elgold dataset with spaCy NER.
+    """
     dataset = Dataset(data)
     if not split and os.path.exists(target):
         raise click.ClickException('target file exists')
@@ -59,6 +75,20 @@ def spacy(data, split, target):
                                                         ' directory.')
 @click.argument('target', nargs=1, type=click.Path(exists=False, file_okay=True), default='blink.jsonl')
 def blink(data, split, target):
+    """
+    Prepare dataset for BLINK evaluation. This command converts the dataset to a jsonl format. Each line represents
+    a single entity from the dataset. Each entity is represented by json object with the following fields:
+    'id': the auto incermented id of the entity.
+    'label': the Wikipedia article that was linked to the entity.
+    'label_id': the id of the Wikipedia article that was linked to the entity.
+    'context_left': The content of the raw text before the mention.
+    'mention': The text marked as the mention.
+    'context_right': The content of the raw text after the mention.
+
+    This format drops the information about entity type and mentions without links to Wikipedia.
+
+    This format was intended to be used for evaluating the elgold dataset with BLINK.
+    """
     dataset = Dataset(data)
     if not split and os.path.exists(target):
         raise click.ClickException('target file exists')
