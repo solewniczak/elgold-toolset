@@ -22,14 +22,23 @@ class Colors:
 
 @click.group()
 def cli():
+    """
+    Manage the elgold dataset. Use elgold.py [command] --help for detailed information about
+    available commands.
+    """
     pass
 
 
 @cli.command()
-@click.option('--data', type=click.Path(exists=True, file_okay=False), default='data')
-@click.option('--class', 'search_classes', multiple=True, help='entity classes we want to search for')
-@click.option('--target', 'search_targets', multiple=True, help='target link we want to search for')
+@click.option('--data', type=click.Path(exists=True, file_okay=False), default='data',
+              help='Path to the elgold dataset.')
+@click.option('--class', 'search_classes', multiple=True, help='Entity classes we want to search for.')
+@click.option('--target', 'search_targets', multiple=True, help='Target links we want to search for.')
 def search(data, search_classes, search_targets):
+    """
+    Search for selected entity classes and target links in the dataset. The command returns the lines from the dataset
+    that contains required entities with file names and line numbers.
+    """
     dataset = Dataset(data)
     for line in dataset.iterate_lines():
         entities = line['entities']
@@ -49,7 +58,7 @@ def search(data, search_classes, search_targets):
                         pos = target.find(t)
                         if pos != -1:
                             target = f'{target[:pos]}{Colors.RED}{target[pos:pos+len(t)]}{Colors.ENDC}{target[pos+len(t):]}'
-                            break  # highlight only first occurrence for simpler code logic
+                            break  # highlight only the first occurrence for simpler code logic
                     output = '{{' + token['text'] + '|' + token['class'] + '|' + target + '}}'
                     if token['class'] in search_classes:
                         output = f'{Colors.BOLD}{output}{Colors.ENDC}'
@@ -60,10 +69,16 @@ def search(data, search_classes, search_targets):
 
 
 @cli.command()
-@click.option('--data', type=click.Path(exists=True, file_okay=False), default='data')
-@click.option('--exclude', multiple=True, help='entity classes we want to exclude from the dataset')
+@click.option('--data', type=click.Path(exists=True, file_okay=False), default='data',
+              help='Path to the elgold dataset.')
+@click.option('--exclude', multiple=True, help='Entity classes we want to exclude from the dataset.')
 @click.argument('target', type=click.Path(exists=False, file_okay=False), default='out')
 def filter(data, exclude, target):
+    """
+    Filter out entities with the specified classes. The selected entities are replaced with their "mention texts".
+    The command creates a copy of the dataset and saves it to the target directory. The original dataset is not
+    touched.
+    """
     dataset = Dataset(data)
     if not os.path.exists(target):
         os.makedirs(target)
@@ -85,10 +100,21 @@ def filter(data, exclude, target):
 
 
 @cli.command()
-@click.option('--data', type=click.Path(exists=True, file_okay=False), default='data')
-@click.option('--exclude-targets/--include-targets', default=True, help="don't search for non-ascii chars inside entities targets")
-@click.argument('chars')  # chars we want to search for
+@click.option('--data', type=click.Path(exists=True, file_okay=False), default='data',
+              help='Path to the elgold dataset.')
+@click.option('--exclude-targets/--include-targets', default=True,
+              help='Exclude entity targets from searching for non-ASCII chars.')
+@click.argument('chars')  # Chars we want to search for
 def search_chars(data, exclude_targets, chars):
+    """
+    Search for non-ASCII characters in the dataset. The command returns the lines from the dataset
+    that contain specified characters with file names and line numbers. At the end command always returns the list
+    of all non-ASCII characters in the dataset.
+
+    The command searches only for non-ASCII characters and does not return any results for the ASCII characters.
+
+    Example: python elgold.py search-chars β™
+    """
     dataset = Dataset(data)
     chars = set(chars)
     non_ascii = Counter()
@@ -124,14 +150,26 @@ def search_chars(data, exclude_targets, chars):
 
 
 @cli.command()
-@click.option('--data', type=click.Path(exists=True, file_okay=False), default='data')
-@click.option('--exclude-targets/--include-targets', default=True, help="don't replace inside entities targets")
-@click.option('--delete', help="remove given charters")
-@click.option('--unicode-escape/--no-unicode-escape', default=False, help="interpret delete, search and replace as unicode strings")
+@click.option('--data', type=click.Path(exists=True, file_okay=False), default='data',
+              help='Path to the elgold dataset.')
+@click.option('--exclude-targets/--include-targets', default=True,
+              help='Exclude entity targets from the replacements.')
+@click.option('--delete', help='Characters to remove.')
+@click.option('--unicode-escape/--no-unicode-escape', default=False,
+              help='Interpret character lists as Python Unicode strings. '
+                   'This allows to use of Unicode escape sequences e.g. \\u2002')
 @click.argument('search')  # chars we want to search for
 @click.argument('replace')  # chars we want to replace
 @click.argument('target', nargs=1, type=click.Path(exists=False, file_okay=False), default='out')
 def replace_chars(data, exclude_targets, delete, unicode_escape, search, replace, target):
+    """
+    Replace and/or delete specified characters from the dataset. The search and replace lists must be 1:1 mapping,
+    so the first character in the search list is replaced with the first in the replacement list.
+    The command creates a copy of the dataset and saves it to the target directory. The original dataset is not
+    touched.
+
+    Example: python elgold.py replace-chars --unicode-escape --delete "\\u2002" "\\u2014\\u2212" "--"
+    """
     dataset = Dataset(data)
     if not os.path.exists(target):
         os.makedirs(target)
@@ -185,13 +223,30 @@ def replace_chars(data, exclude_targets, delete, unicode_escape, search, replace
 
 
 @cli.command()
-@click.option('--data', type=click.Path(exists=True, file_okay=False), default='data')
-@click.option('--remove-non-existent/--keep-non-existent', default=False, help="normalize targets")
-@click.option('--normalize/--no-normalize', default=False, help="normalize targets")
-@click.option('--redirect/--no-redirect', default=False, help="replace redirects with destinations")
-@click.option('--interactive/--no-interactive', default=False, help="ask before performing replacements")
+@click.option('--data', type=click.Path(exists=True, file_okay=False), default='data',
+              help='Path to the elgold dataset.')
+@click.option('--remove-non-existent/--keep-non-existent', default=False,
+              help='Remove links to non-existing Wikipedia pages.')
+@click.option('--normalize/--no-normalize', default=False,
+              help='Normalize Wikipedia targets.')
+@click.option('--redirect/--no-redirect', default=False,
+              help='Replace Wikipedia targets that point to redirect pages with their destinations.')
+@click.option('--interactive/--no-interactive', default=False,
+              help='Ask each time before performing target replacements.')
 @click.argument('out', nargs=1, type=click.Path(exists=False, file_okay=False), default='out')
 def fix_targets(data, remove_non_existent, normalize, redirect, interactive, out):
+    """
+    Fix technical errors in Wikipedia targets. In the interactive mode, the command asks each time if a possible
+    replacement exists. The user can decide whether to accept the decision [Y], not accept [n], or replace the
+    target with the custom replacement [r].
+
+    If the target is a redirect, the command performs redirect replacement
+    and does not normalize the new target, which can lead to creating non-normalized targets.
+    You should run the command again to normalize the remaining targets.
+
+    The command creates a copy of the dataset and saves it to the target directory. The original dataset is not
+    touched.
+    """
     dataset = Dataset(data)
     if not os.path.exists(out):
         os.makedirs(out)
@@ -279,9 +334,14 @@ def fix_targets(data, remove_non_existent, normalize, redirect, interactive, out
 
 
 @cli.command()
-@click.option('--data', type=click.Path(exists=True, file_okay=False), default='data')
-@click.option('--class', 'search_classes', multiple=True, help='entity classes we want to search for')
+@click.option('--data', type=click.Path(exists=True, file_okay=False), default='data',
+              help='Path to the elgold dataset.')
+@click.option('--class', 'search_classes', multiple=True,
+              help='Entity classes we want to search for.')
 def list_entities(data, search_classes):
+    """
+    List all entities (one per line) from the selected class. The entities are listed with file names and line numbers.
+    """
     dataset = Dataset(data)
     for parsed_file in dataset.iterate_files():
         for parsed_line in parsed_file['lines']:
@@ -294,9 +354,15 @@ def list_entities(data, search_classes):
 
 
 @cli.command()
-@click.option('--data', type=click.Path(exists=True, file_okay=False), default='data')
+@click.option('--data', type=click.Path(exists=True, file_okay=False), default='data',
+              help='Path to the elgold dataset.')
 @click.argument('categories', nargs=-1, type=click.Path(exists=False, file_okay=False))
 def text_stat(data, categories):
+    """
+    Calculate raw text statistics for the entire dataset or specified text categories. The statistics include
+    the number of texts, minimal text length (number of words), maximum text length, average text length and
+    text length standard deviation.
+    """
     dataset = Dataset(data)
     if len(categories) == 0:
         categories = ['']  # get all categories

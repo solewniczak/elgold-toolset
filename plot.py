@@ -18,18 +18,19 @@ def cli():
 
 @cli.command()
 @click.option('--data', type=click.Path(exists=True, file_okay=False), default='data',
-              help="The path to the elgold dataset.")
+              help='Path to the elgold dataset.')
 @click.option('--percentage/--absolute', default=False,
-              help="Should we display the absolute number of entities in each class (default) or percentage?")
+              help='Should we display the absolute number of entities in each class (default) or percentage?')
 @click.option('--labels', type=click.Path(), default='conf/plot_labels.json',
-              help="JSON dictionary with mappings between text categories numbers and their labels.")
+              help='JSON dictionary with mappings between text categories numbers and their labels.')
 @click.option('--ner-classes', type=click.Path(), default='conf/ner_classes.json',
-              help="JSON array of NER classes that are used in the dataset.")
+              help='JSON array of NER classes that are used in the dataset.')
 @click.argument('categories', nargs=-1)
 def histogram(data, percentage, labels, ner_classes, categories):
     """
     Summarize the number of entities in each class in the dataset. The histogram can be plotted separately for
     each texts category (categories argument) or for the entire dataset at once (when we provide no categories).
+    Histogram shows the number of entities with and without links.
     """
     dataset = Dataset(data)
     with open(labels) as fp:
