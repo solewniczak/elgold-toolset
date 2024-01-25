@@ -41,12 +41,6 @@ class Dataset:
 
         return {'tokens': tokens, 'entities': entities, 'plain_text': plain_text}
 
-    def iterate_lines(self) -> Iterator[dict]:
-        for parsed_file in self.iterate_files():
-            for line in parsed_file['lines']:
-                line['file'] = parsed_file['file']
-                yield line
-
     def iterate_files(self) -> Iterator[dict]:
         for f in self.files:
             category, serial = f.removesuffix('.txt').split('_')

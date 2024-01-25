@@ -40,32 +40,33 @@ def search(data, search_classes, search_targets):
     that contains required entities with file names and line numbers.
     """
     dataset = Dataset(data)
-    for line in dataset.iterate_lines():
-        entities = line['entities']
-        if len(search_classes) > 0:  # check if line contains specified classes if defined
-            entities = [entity for entity in entities if entity['class'] in search_classes]
-        if len(search_targets) > 0:
-            entities = [entity for entity in entities if any([t in entity['target'] for t in search_targets])]
+    for parsed_file in dataset.iterate_files():
+        for line in parsed_file['lines']:
+            entities = line['entities']
+            if len(search_classes) > 0:  # check if line contains specified classes if defined
+                entities = [entity for entity in entities if entity['class'] in search_classes]
+            if len(search_targets) > 0:
+                entities = [entity for entity in entities if any([t in entity['target'] for t in search_targets])]
 
-        if any(entities):
-            file = line['file']
-            line_nb = line['nb']
-            print(f'{Colors.MAGENTA}{file}{Colors.ENDC}:{Colors.BLUE}{line_nb}{Colors.ENDC}', end=':')
-            for token in line['tokens']:
-                if token['type'] == 'entity':
-                    target = token['target']
-                    for t in search_targets:
-                        pos = target.find(t)
-                        if pos != -1:
-                            target = f'{target[:pos]}{Colors.RED}{target[pos:pos+len(t)]}{Colors.ENDC}{target[pos+len(t):]}'
-                            break  # highlight only the first occurrence for simpler code logic
-                    output = '{{' + token['text'] + '|' + token['class'] + '|' + target + '}}'
-                    if token['class'] in search_classes:
-                        output = f'{Colors.BOLD}{output}{Colors.ENDC}'
-                    print(output, end='')
-                else:
-                    print(token['text'], end='')
-            print()
+            if any(entities):
+                file = line['file']
+                line_nb = line['nb']
+                print(f'{Colors.MAGENTA}{file}{Colors.ENDC}:{Colors.BLUE}{line_nb}{Colors.ENDC}', end=':')
+                for token in line['tokens']:
+                    if token['type'] == 'entity':
+                        target = token['target']
+                        for t in search_targets:
+                            pos = target.find(t)
+                            if pos != -1:
+                                target = f'{target[:pos]}{Colors.RED}{target[pos:pos+len(t)]}{Colors.ENDC}{target[pos+len(t):]}'
+                                break  # highlight only the first occurrence for simpler code logic
+                        output = '{{' + token['text'] + '|' + token['class'] + '|' + target + '}}'
+                        if token['class'] in search_classes:
+                            output = f'{Colors.BOLD}{output}{Colors.ENDC}'
+                        print(output, end='')
+                    else:
+                        print(token['text'], end='')
+                print()
 
 
 @cli.command()
@@ -118,32 +119,33 @@ def search_chars(data, exclude_targets, chars):
     dataset = Dataset(data)
     chars = set(chars)
     non_ascii = Counter()
-    for parsed_line in dataset.iterate_lines():
-        file = parsed_line['file']
-        line_nb = parsed_line['nb']
-        output = f'{Colors.MAGENTA}{file}{Colors.ENDC}:{Colors.BLUE}{line_nb}{Colors.ENDC}:'
-        non_ascii_in_line = set()
+    for parsed_file in dataset.iterate_files():
+        for parsed_line in parsed_file['lines']:
+            file = parsed_line['file']
+            line_nb = parsed_line['nb']
+            output = f'{Colors.MAGENTA}{file}{Colors.ENDC}:{Colors.BLUE}{line_nb}{Colors.ENDC}:'
+            non_ascii_in_line = set()
 
-        def highlight(text):
-            output = ''
-            for ch in text:
-                if 0 <= ord(ch) <= 127:  # ascii char
-                    output += ch
+            def highlight(text):
+                output = ''
+                for ch in text:
+                    if 0 <= ord(ch) <= 127:  # ascii char
+                        output += ch
+                    else:
+                        non_ascii[ch] += 1
+                        non_ascii_in_line.add(ch)
+                        if ch in chars:  # this is a char we are searching for
+                            ch = Colors.RED + ch
+                        output += f'{Colors.BOLD}{ch}{Colors.ENDC}'
+                return output
+
+            for token in parsed_line['tokens']:
+                if exclude_targets and token['type'] == 'entity':
+                    output += '{{' + highlight(token['text']) + '|' + token['class'] + '|' + token['target'] + '}}'
                 else:
-                    non_ascii[ch] += 1
-                    non_ascii_in_line.add(ch)
-                    if ch in chars:  # this is a char we are searching for
-                        ch = Colors.RED + ch
-                    output += f'{Colors.BOLD}{ch}{Colors.ENDC}'
-            return output
-
-        for token in parsed_line['tokens']:
-            if exclude_targets and token['type'] == 'entity':
-                output += '{{' + highlight(token['text']) + '|' + token['class'] + '|' + token['target'] + '}}'
-            else:
-                output += highlight(token['text'])
-        if chars & non_ascii_in_line:  # we have non-ascii chars in line we are looking for
-            print(output)
+                    output += highlight(token['text'])
+            if chars & non_ascii_in_line:  # we have non-ascii chars in line we are looking for
+                print(output)
     print('Non-ascii chars in dataset:')
     for ch, count in non_ascii.most_common():
         print(f"'{ch}': {count}")
